@@ -18,7 +18,7 @@ data class CardsTable(
 
 #### BasicMatchMakerConfig
 
-`MatchMaker` needs a config class that will tell it how to make sense of the lobbies.
+`MatchMaker` needs a config class that will tell it how to make sense of the lobbies. `BasicMatchMakerConfig` handles creating lobbies and adding players to them but you'll need to provide `isBasicLobbyReady()`.
 ```
 class CardGameConfig : BasicMatchMakerConfig() {
 	override fun isBasicLobbyReady(lobby : BasicLobby): Boolean {
@@ -47,7 +47,10 @@ fun main() {
 
 	// each should have been matched to a lobby
 	agents.forEach { assert(it.lobby != null) }
-
+}
+```
+Lets confirm the agents are in the same lobby:
+```
 	agents[0].let {
 		val name = it.data as String
 		val basicLobby = it.lobby as BasicLobby
@@ -62,7 +65,6 @@ fun main() {
 			}
 		}
 	}
-}
 ```
 Console output:
 ```
