@@ -5,7 +5,8 @@ A library that helps connect agents with each other.
 # Table of Contents
 
 1. [Getting Started](#getting-started)
-2. [Async Await](#async-await)
+2. [Async/Await](#async-await)
+3. [Actor/Worker](#actor-worker)
 
 <a name="getting-started"></a>
 # Getting Started
@@ -91,4 +92,27 @@ val bob = AsyncAgent("bob")
 matchMaker.registerAgent(bob, CardsTable("GoFish", 2))
 
 val bobsLobby = bob.lobby.await()
+```
+
+<a name="actor-worker"></a>
+# Actor/Worker
+
+If you are using thousands of coroutines, then using a `mutex` to provide concurrent access to `MatchMaker` is inefficient. Instead, you should use the actor pattern where requests get queued and a worker fulfills the requests:
+```
+val matchMaker = MatchMaker(CardGameConfig())
+val worker = GlobalScope.matchMakerWorker(matchMaker)
+
+// launch thousands of workers that will connect to the same game
+
+val agents = (0 until 100_000).map { AsyncAgent("Player-$it") }.toList()
+agents.forEach {
+	GlobalScope.launch {
+		delay(Random().nextInt(1000).toLong())
+		worker.send(RegisterAgentMessage(it, CardsTable("toomany", agents.size)))
+	}
+}
+
+runBlocking {
+	agents.forEach { it.lobby.await() }
+}
 ```

@@ -3,9 +3,7 @@
  */
 package talham7391.matchmaker
 
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import java.util.*
 import kotlin.test.Test
@@ -177,5 +175,70 @@ class TestAsyncAgent {
         val marrysLobby = marry.lobby.await()
 
         assert(bobsLobby == marrysLobby)
+    }
+}
+
+class TestMatchMakerWorker {
+    @Test fun testMatchMakerWorker() = runBlocking<Unit> {
+        val matchMaker = MatchMaker(CardGameConfig())
+        val channel = matchMakerWorker(matchMaker)
+
+        val agents = mutableListOf<AsyncAgent>()
+        val jobs = mutableListOf<Job>()
+
+        repeat(100) {
+            val a = AsyncAgent("")
+            agents.add(a)
+            val j = launch {
+                delay(Random().nextInt(1000).toLong())
+                channel.send(RegisterAgentMessage(a, CardsTable("hearts", 100)))
+            }
+            jobs.add(j)
+        }
+
+        repeat(25) {
+            val a = AsyncAgent("")
+            agents.add(a)
+            launch {
+                delay(Random().nextInt(5000).toLong())
+                channel.send(RegisterAgentMessage(a, CardsTable("random", 25)))
+            }
+        }
+
+        agents.forEach { it.lobby.await() }
+
+        channel.close()
+
+        val uniqueLobbies = mutableSetOf<Lobby>()
+        agents.map { it.lobby.await() }.forEach { uniqueLobbies.add(it) }
+
+        assertEquals(2, uniqueLobbies.size)
+    }
+}
+
+class TestMatchMakerWorker2 {
+    @Test fun testMatchMakerWorker2() {
+        val matchMaker = MatchMaker(CardGameConfig())
+        val worker = GlobalScope.matchMakerWorker(matchMaker)
+
+        // launch thousands of workers that will connect to the same game
+
+        val agents = (0 until 100_000).map { AsyncAgent("Player-$it") }.toList()
+        agents.forEach {
+            GlobalScope.launch {
+                delay(Random().nextInt(1000).toLong())
+                worker.send(RegisterAgentMessage(it, CardsTable("toomany", agents.size)))
+            }
+        }
+
+        val uniqueLobbies = mutableSetOf<Lobby>()
+        runBlocking {
+            agents.forEach {
+                val lobby = it.lobby.await()
+                uniqueLobbies.add(lobby)
+            }
+        }
+
+        assertEquals(1, uniqueLobbies.size)
     }
 }
