@@ -20,20 +20,20 @@ data class MyAgent(val name: String, val listener: AgentListener) : Agent {
     }
 }
 
-data class MyLobbyProperties(
+data class MyMatchProperties(
         val map: String
-) : LobbyProperties
+) : MatchProperties
 
 data class MyLobby(
-        val properties: MyLobbyProperties,
+        val properties: MyMatchProperties,
         val maxNumPlayers: Int
 ) : Lobby {
     val agents = mutableListOf<Agent>()
 }
 
 class MyMatchMakerConfig(val lobbySize: Int) : MatchMakerConfig {
-    override fun makeLobby(lobbyProperties: LobbyProperties): Lobby {
-        return MyLobby(lobbyProperties as MyLobbyProperties, lobbySize)
+    override fun makeLobby(properties: MatchProperties): Lobby {
+        return MyLobby(properties as MyMatchProperties, lobbySize)
     }
 
     override fun addAgentToLobby(agent: Agent, lobby: Lobby): Boolean {
@@ -57,7 +57,7 @@ class TestCanMakeMatch : AgentListener {
     @Test fun testCanMakeMatch() {
         val mm = MatchMaker(MyMatchMakerConfig(1))
         val map = "HALO"
-        mm.registerAgent(MyAgent("bob", this), MyLobbyProperties(map))
+        mm.registerAgent(MyAgent("bob", this), MyMatchProperties(map))
         assert(readyAgent != null)
         assert(readyAgent?.lobby?.properties?.map == map)
         assert(readyAgent?.let { it.lobby?.agents?.contains(it) } ?: false)
@@ -78,7 +78,7 @@ class TestCanJoinMultipleMatches : AgentListener {
         repeat(numLobbies) {
             val m = "HALO - ${Random().nextInt()}"
             repeat(lobbySize) {
-                mm.registerAgent(MyAgent("bob", this), MyLobbyProperties(m))
+                mm.registerAgent(MyAgent("bob", this), MyMatchProperties(m))
             }
         }
         assertEquals(numLobbies, lobbies.size)
@@ -99,10 +99,10 @@ class TestPlayersJoinRightMatch : AgentListener {
         val p3 = MyAgent("p3", this)
         val p4 = MyAgent("p4", this)
 
-        mm.registerAgent(p1, MyLobbyProperties("president"))
-        mm.registerAgent(p2, MyLobbyProperties("estimation"))
-        mm.registerAgent(p3, MyLobbyProperties("estimation"))
-        mm.registerAgent(p4, MyLobbyProperties("president"))
+        mm.registerAgent(p1, MyMatchProperties("president"))
+        mm.registerAgent(p2, MyMatchProperties("estimation"))
+        mm.registerAgent(p3, MyMatchProperties("estimation"))
+        mm.registerAgent(p4, MyMatchProperties("president"))
     }
 
     override fun agentReady(agent: MyAgent) {
@@ -110,6 +110,53 @@ class TestPlayersJoinRightMatch : AgentListener {
             assertEquals("president", agent.lobby?.properties?.map)
         } else {
             assertEquals("estimation", agent.lobby?.properties?.map)
+        }
+    }
+}
+
+data class CardsTable(
+        val game: String,
+        val numPlayers: Int
+) : MatchProperties
+
+class CardGameConfig : BasicMatchMakerConfig() {
+    override fun isBasicLobbyReady(lobby: BasicLobby): Boolean {
+        val cardsTable = lobby.properties as? CardsTable
+        cardsTable ?: return false
+        return cardsTable.numPlayers == lobby.agents.size
+    }
+}
+
+class TestBasicImplementationsWork() {
+    @Test fun testBasicImplementationsWork() {
+        val matchMaker = MatchMaker(CardGameConfig())
+
+        val people = listOf("bob", "joe", "mary", "billy")
+        val agents = people.map { BasicAgent(it) }
+
+        // no agent is matched to a lobby yet
+        agents.forEach { assert(it.lobby == null) }
+
+        // 4 agents request to match to the same match properties
+        val heartsTable = CardsTable("Hearts", 4)
+        agents.forEach { matchMaker.registerAgent(it, heartsTable) }
+
+        // each should have been matched to a lobby
+        agents.forEach { assert(it.lobby != null) }
+
+        agents[0].let {
+            val name = it.data as String
+            val basicLobby = it.lobby as BasicLobby
+            val properties = basicLobby.properties as CardsTable
+
+            println("$name has joined a ${properties.game} game with:")
+            for (agent in basicLobby.agents) {
+                val basicAgent = agent as BasicAgent
+                val agentName = basicAgent.data as String
+                if (agentName != name) {
+                    println(" - $agentName")
+                }
+            }
         }
     }
 }
