@@ -10,9 +10,9 @@ data class LobbyData(
 )
 
 class MatchMaker(
-        val config: MatchMakerConfig
+        private val config: MatchMakerConfig
 ) {
-    val lobbies = mutableMapOf<LobbyProperties, LobbyData>()
+    private val lobbies = mutableMapOf<LobbyProperties, LobbyData>()
 
     fun registerAgent(agent: Agent, properties: LobbyProperties): Boolean {
         if (properties !in lobbies) {
