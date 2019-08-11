@@ -2,11 +2,17 @@
 
 A library that helps connect agents with each other.
 
-## Getting Started
+# Table of Contents
+
+1. [Getting Started](#getting-started)
+2. [Async Await](#async-await)
+
+<a name="getting-started"></a>
+# Getting Started
 
 Implement the following 2 interfaces to get started.
 
-####  MatchProperties
+###  MatchProperties
 
 Agents looking for the same `MatchProperties` will be assigned together. This is where the different game modes, match settings, etc.. will go. Make sure this class implements the `hashCode()` method. The simplest way to do this is to use a data class.
 ```
@@ -16,7 +22,7 @@ data class CardsTable(
 ) : MatchProperties
 ```
 
-#### BasicMatchMakerConfig
+### BasicMatchMakerConfig
 
 `MatchMaker` needs a config class that will tell it how to make sense of the lobbies. `BasicMatchMakerConfig` handles creating lobbies and adding players to them but you'll need to provide `isBasicLobbyReady()`.
 ```
@@ -28,6 +34,8 @@ class CardGameConfig : BasicMatchMakerConfig() {
 	}
 }
 ```
+
+### Putting it all together
 
 Now that we have the basic class implemented, we can glue everything together:
 
@@ -74,7 +82,8 @@ bob has joined a Hearts game with:
  - billy
 ```
 
-## Async/Await
+<a name="async-await"></a>
+# Async/Await
 
 In some cases it may be awkward to use the `joinedLobby` method on the Agent to determine if an Agent is assigned a lobby. If you are using coroutines, then using the `AsyncAgent` would be cleaner:
 ```
