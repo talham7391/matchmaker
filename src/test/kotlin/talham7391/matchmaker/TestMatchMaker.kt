@@ -3,6 +3,10 @@
  */
 package talham7391.matchmaker
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -143,20 +147,35 @@ class TestBasicImplementationsWork() {
 
         // each should have been matched to a lobby
         agents.forEach { assert(it.lobby != null) }
+    }
+}
 
-        agents[0].let {
-            val name = it.data as String
-            val basicLobby = it.lobby as BasicLobby
-            val properties = basicLobby.properties as CardsTable
+class TestAsyncAgent {
+    @Test fun testAsyncAgent() = runBlocking {
+        val matchMaker = MatchMaker(CardGameConfig())
+        val mutex = Mutex()
 
-            println("$name has joined a ${properties.game} game with:")
-            for (agent in basicLobby.agents) {
-                val basicAgent = agent as BasicAgent
-                val agentName = basicAgent.data as String
-                if (agentName != name) {
-                    println(" - $agentName")
-                }
-            }
+        val twoPlayerGame = CardsTable("Go Fish", 2)
+
+        val bob = AsyncAgent("bob")
+        val marry = AsyncAgent("marry")
+
+        launch {
+            delay(1000L)
+            mutex.lock()
+            matchMaker.registerAgent(bob, twoPlayerGame)
+            mutex.unlock()
         }
+
+        launch {
+            mutex.lock()
+            matchMaker.registerAgent(marry, twoPlayerGame)
+            mutex.unlock()
+        }
+
+        val bobsLobby = bob.lobby.await()
+        val marrysLobby = marry.lobby.await()
+
+        assert(bobsLobby == marrysLobby)
     }
 }

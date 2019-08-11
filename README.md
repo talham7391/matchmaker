@@ -73,3 +73,13 @@ bob has joined a Hearts game with:
  - mary
  - billy
 ```
+
+## Async/Await
+
+In some cases it may be awkward to use the `joinedLobby` method on the Agent to determine if an Agent is assigned a lobby. If you are using coroutines, then using the `AsyncAgent` would be cleaner:
+```
+val bob = AsyncAgent("bob")
+matchMaker.registerAgent(bob, CardsTable("GoFish", 2))
+
+val bobsLobby = bob.lobby.await()
+```

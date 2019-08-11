@@ -4,6 +4,6 @@ interface Lobby
 
 interface MatchProperties
 
-class BasicLobby(val properties: MatchProperties) : Lobby {
+open class BasicLobby(val properties: MatchProperties) : Lobby {
     val agents = mutableListOf<Agent>()
 }
